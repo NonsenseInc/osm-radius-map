@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+        crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+        integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+        crossorigin=""></script>
+    <!--<script src="https://unpkg.com/turf@7.0.0-alpha.1/dist/turf.min.js"
+        integrity="sha384-BeDdzOJisI0qu7fMvf4G5xuL1UVhfBpv0qh3lVeEsTn2VtCdW/IUSfzS6IMEJKAh"
+        crossorigin="anonymous"></script>-->
+    <script src="https://unpkg.com/@turf/turf/turf.min.js"
+        integrity="sha384-4AJURQ1iuA3c9I5pNFJ7YBjDqwLDoYhkOeBQlXtGTGGlavq433OFewlaCMV1Cta2"
+        crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/osmtogeojson@2.2.12/osmtogeojson.js"
+        integrity="sha384-fAlU0IIimkdHdu7mvEMWsgmkz5GQe7P6r0z7pHCYOru6JzHyo3GcNwqxARCMVU02"
+        crossorigin="anonymous"></script>
+
+    <style>
+        html,
+        body {
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        #map {
+            /* configure the size of the map */
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+        // get the parameters from the url
+        let params = (new URL(document.location)).searchParams;
+
+        var target = params.has("target") ? params.get("target") : "Ratingen";
+        var level = params.has("level") ? parseInt(params.get("level")) : 8;
+        var radius = params.has("radius") ? parseInt(params.get("radius")) : 15;
+
+        // initialize Leaflet
+        var map = L.map('map').setView({ lon: 0, lat: 0 }, 2);
+
+        // add the OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+        }).addTo(map);
+
+        // show the scale bar on the lower left corner
+        L.control.scale().addTo(map);
+
+        // build overpass query string
+        var query = encodeURI('[out:json]; area(3600051477)->.searchArea;(relation["boundary"="administrative"]["admin_level"="' + level + '"]["name"~"' + target + '"](area.searchArea););out meta;>;out meta qt;');
+        var url = "https://lz4.overpass-api.de/api/interpreter?data=" + query;
+
+        // request geojson from overpass
+        var request = new XMLHttpRequest();
+        console.log("requesting overpass data: " + url);
+        console.log("this might take some seconds...")
+        request.open('GET', url, true);
+        request.timeout = 60000;
+
+        var injson, ingeo, buffered, union, outjson;
+
+        request.onload = () => {
+            if (request.status >= 200 && request.status < 400) {
+                // parse the input to geojson
+                injson = JSON.parse(request.responseText);
+                ingeo = osmtogeojson(injson);
+
+                // extend the area by radius km
+                buffered = turf.buffer(ingeo, radius, { units: 'kilometers' });
+                union = turf.union(...(buffered.features));
+                outjson = L.geoJSON(union);
+
+                // draw the area to the map
+                outjson.addTo(map);
+                map.fitBounds(outjson.getBounds());
+            } else {
+
+            }
+        };
+
+        request.onerror = () => {
+            console.log("Error requesting data.");
+        };
+
+        request.send();
+    </script>
+</body>
+
+</html>
