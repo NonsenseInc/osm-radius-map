@@ -55,10 +55,9 @@
     <div id="map"></div>
     <script>
         // get the parameters from the url
-        let params = (new URL(document.location)).searchParams;
+        var params = (new URL(document.location)).searchParams;
 
-        var target = params.has("target") ? params.get("target") : "Ratingen";
-        var level = params.has("level") ? parseInt(params.get("level")) : 8;
+        var wd = params.has("wd") ? params.get("wd") : "Q6245";
         var radius = params.has("radius") ? parseInt(params.get("radius")) : 15;
 
         // initialize Leaflet
@@ -74,8 +73,9 @@
         L.control.scale().addTo(map);
 
         // build overpass query string
-        var query = encodeURI('[out:json]; area(3600051477)->.searchArea;(relation["boundary"="administrative"]["admin_level"="' + level + '"]["name"~"' + target + '"](area.searchArea););out meta;>;out meta qt;');
-        var url = "https://overpass-api.de/api/interpreter?data=" + query;
+        //var query = encodeURI('[out:json]; area(3600051477)->.searchArea;(relation["boundary"="administrative"]["admin_level"="' + level + '"]["name"~"' + target + '"](area.searchArea););out meta;>;out meta qt;');
+        var query = encodeURI(`[out:json]; ( relation["wikidata"="${wd}"]; ); out geom;`);
+        var url = `https://overpass-api.de/api/interpreter?data=${query}`;
 
         // request geojson from overpass
         var request = new XMLHttpRequest();
@@ -84,6 +84,7 @@
         request.open('GET', url, true);
         request.timeout = 60000;
 
+        // variables outside of callbacks for now, to make debugging easier
         var injson, ingeo, buffered, union, outjson;
 
         request.onload = () => {
