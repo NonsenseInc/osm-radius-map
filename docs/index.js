@@ -39,7 +39,8 @@ request.onload = () => {
 
         // extend the area by radius km
         buffered = turf.buffer(ingeo, radius, { units: 'kilometers' });
-        union = turf.union(...(buffered.features));
+        if (buffered.features.length > 2) union = turf.union(...(buffered.features));
+        else union = buffered;
         outjson = L.geoJSON(union);
 
         // draw the area to the map
