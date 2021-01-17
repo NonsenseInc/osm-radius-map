@@ -19,7 +19,7 @@ L.control.scale().addTo(map);
 // build overpass query string
 //var query = encodeURI('[out:json]; area(3600051477)->.searchArea;(relation["boundary"="administrative"]["admin_level"="' + level + '"]["name"~"' + target + '"](area.searchArea););out meta;>;out meta qt;');
 var query = encodeURI(`[out:json]; ( relation["wikidata"="${wd}"]; ); out geom;`);
-var url = `https://overpass-api.de/api/interpreter?data=${query}`;
+var url = `https://overpass.kumi.systems/api/interpreter?data=${query}`;
 
 // request geojson from overpass
 var request = new XMLHttpRequest();
