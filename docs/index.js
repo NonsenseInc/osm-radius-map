@@ -29,23 +29,27 @@ request.open('GET', url, true);
 request.timeout = 60000;
 
 // variables outside of callbacks for now, to make debugging easier
-var injson, ingeo, buffered, union, outjson;
+var in_osm, in_geo, in_map, buffered_geo, union_geo, buffered_map;
 
 request.onload = () => {
     if (request.status >= 200 && request.status < 400) {
         // parse the input to geojson
-        injson = JSON.parse(request.responseText);
-        ingeo = osmtogeojson(injson);
+        in_osm = JSON.parse(request.responseText);
+        in_geo = osmtogeojson(in_osm);
 
         // extend the area by radius km
-        buffered = turf.buffer(ingeo, radius, { units: 'kilometers' });
-        if (buffered.features.length > 1) union = turf.union(...(buffered.features));
-        else union = buffered;
-        outjson = L.geoJSON(union);
+        buffered_geo = turf.buffer(in_geo, radius, { units: 'kilometers' });
+        if (buffered_geo.features.length > 1) union_geo = turf.union(...(buffered_geo.features));
+        else union_geo = buffered_geo;
 
-        // draw the area to the map
-        outjson.addTo(map);
-        map.fitBounds(outjson.getBounds());
+        // draw the original area to the map
+        in_map = L.geoJSON(in_geo);
+        in_map.addTo(map);
+
+        // draw the buffered area to the map
+        buffered_map = L.geoJSON(union_geo);
+        buffered_map.addTo(map);
+        map.fitBounds(buffered_map.getBounds());
     } else {
         console.log("Error requesting data.");
     }
